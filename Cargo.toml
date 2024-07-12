@@ -3,7 +3,12 @@ name = "smash"
 version = "0.1.0"
 edition = "2021"
 
+[[example]]
+name = "tap"
+
 [dependencies]
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["json"] }
 
 [target."cfg(target_os = \"hermit\")".dependencies]
 hermit = "0.9.1"
