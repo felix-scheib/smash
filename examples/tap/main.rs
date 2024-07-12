@@ -1,6 +1,10 @@
+use std::env::args;
+
 #[cfg(target_os = "hermit")]
 use hermit as _;
+use smash::config::Config;
 
 fn main() {
-    println!("Hello from SMasH!");
+    let args = args().collect();
+    Config::new(&args);
 }
