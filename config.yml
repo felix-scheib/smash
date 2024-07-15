@@ -1,0 +1,4 @@
+hosts:
+  - "10.0.5.255"
+log_path: "./hermit_logs"
+log_file: "log.log"

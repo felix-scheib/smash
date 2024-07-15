@@ -1,28 +1,52 @@
+use std::{
+    fs,
+    io::{self, ErrorKind},
+};
+
 use args::Args;
+use config_file::ConfigFile;
 use tracing::{info, Level};
 use tracing_subscriber::{
-    filter,
     fmt::{self, writer::MakeWriterExt},
     layer::SubscriberExt,
-    util::SubscriberInitExt,
-    Layer, Registry,
+    Registry,
 };
 
 mod args;
+mod config_file;
 
-const LOG_LEVEL_KEY: &str = "LOG_LEVEL";
+const LOG_LEVEL_KEY: &str = "LOG";
 const LOG_LEVEL_DEFAULT: Level = Level::INFO;
+const CONFIG_FILE_KEY: &str = "CONFIG";
 
 pub struct Config {
     args: Args,
+    config_file: ConfigFile,
 }
-
-//TODO: read yaml input for log path
 
 impl Config {
     pub fn new(args: &Vec<String>) -> Self {
+        let args = Args::new(args);
+
+        let config = match args.get_key(CONFIG_FILE_KEY) {
+            Some(config_file) => fs::read_to_string(config_file),
+            None => Err(io::Error::new(
+                ErrorKind::InvalidInput,
+                "No config file specified",
+            )),
+        };
+
+        let content = match config {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Error while reading config file: {}", e);
+                "".to_owned()
+            }
+        };
+
         let config = Config {
-            args: Args::new(args),
+            args,
+            config_file: ConfigFile::new(content.as_str()),
         };
 
         config.init_logging();
@@ -35,17 +59,21 @@ impl Config {
             None => LOG_LEVEL_DEFAULT,
         };
 
-        let file_appender = tracing_appender::rolling::never("./logs", "logfile.log");
+        let file_appender = tracing_appender::rolling::never(
+            self.config_file.get_log_path(),
+            self.config_file.get_log_file(),
+        );
+
         let terminal_layer = fmt::layer()
             .with_writer(std::io::stdout.with_max_level(level))
+            .pretty()
             .with_ansi(true)
-            .pretty();
+            .with_file(false)
+            .with_line_number(false);
 
         let subscriber = Registry::default()
-            .with(
-                terminal_layer, //     fmt::layer().compact().with_ansi(true).with_filter(filter::LevelFilter::from_level(Level::INFO))
-            )
-            .with(fmt::layer().with_writer(file_appender));
+            .with(terminal_layer)
+            .with(fmt::layer().with_writer(file_appender).pretty());
 
         tracing::subscriber::set_global_default(subscriber).unwrap();
 
