@@ -14,3 +14,13 @@ To run `Hermit` unikernels two additional files are needed.
 - no `unsafe` code for the user
 - fully distributed memory, no single points of failure
 - usage of idiomantic **Rust**
+
+## Building
+To use `Hermit` the [Rust toolchain](https://www.rust-lang.org/) and [rust-std-hermit](https://github.com/hermit-os/rust-std-hermit) are required. The [Protocol Buffers](https://protobuf.dev/) compiler `protoc` is needed for the shared memory objects.
+
+The complete development environment is provided by as [Docker image](ghcr.io/felix-scheib/felix-scheib/smash/buildenv).
+
+The following command will build the current directory in **development** configuration. To use any other `cargo` command, simply override the entrypoint of the container.
+```shell
+docker run -v $(pwd):/app:Z ghcr.io/felix-scheib/felix-scheib/smash/buildenv:1.0
+```
