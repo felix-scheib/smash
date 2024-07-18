@@ -17,7 +17,7 @@ impl ConfigFile {
             config
         } else {
             eprintln!("Failed to parsed config, using default configuration!");
-            ConfigFile {
+            Self {
                 hosts: vec![DEFAULT_HOST.to_owned()],
                 log_path: DEFAULT_LOG_PATH.to_owned(),
                 log_file: DEFAULT_LOG_FILE.to_owned(),

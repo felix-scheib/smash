@@ -10,7 +10,7 @@ pub struct Args {
 
 impl Args {
     pub fn new(args: &Vec<String>) -> Self {
-        Args {
+        Self {
             args: extract_args(args),
         }
     }

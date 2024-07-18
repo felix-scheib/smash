@@ -66,14 +66,16 @@ impl Config {
 
         let terminal_layer = fmt::layer()
             .with_writer(std::io::stdout.with_max_level(level))
-            .pretty()
             .with_ansi(true)
             .with_file(false)
             .with_line_number(false);
 
-        let subscriber = Registry::default()
-            .with(terminal_layer)
-            .with(fmt::layer().with_writer(file_appender).pretty());
+        let subscriber = Registry::default().with(terminal_layer).with(
+            fmt::layer()
+                .with_writer(file_appender)
+                .with_file(true)
+                .with_line_number(true),
+        );
 
         tracing::subscriber::set_global_default(subscriber).unwrap();
 
@@ -89,6 +91,10 @@ impl Config {
             "WARN" => Level::WARN,
             _ => LOG_LEVEL_DEFAULT,
         }
+    }
+
+    pub fn get_hosts(&self) -> &Vec<String> {
+        &self.config_file.get_hosts()
     }
 }
 

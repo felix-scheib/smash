@@ -1,0 +1,4 @@
+hosts:
+  - "127.0.0.1:4201"
+log_path: "./logs"
+log_file: "reader.log"

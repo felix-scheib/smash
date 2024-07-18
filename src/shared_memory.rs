@@ -1,21 +1,25 @@
-use memory::{Bytes, Memory, Text};
-use std::net::SocketAddr;
-use tracing::error;
+use receiver::Receiver;
+use sender::Sender;
+use std::{
+    net::{SocketAddr, UdpSocket},
+    thread::{self, JoinHandle},
+    time::{self, Duration},
+};
+use tracing::{error, trace};
+use tracing_unwrap::ResultExt;
 
 mod receiver;
 mod sender;
 
-pub mod memory {
-    include!(concat!(env!("OUT_DIR"), "/protobuf.memory.rs"));
-}
-struct SharedMemory {
+pub struct SharedMemory {
     hosts: Vec<SocketAddr>,
-    memory: memory::Memory,
+    sender: Sender,
+    receiver: Receiver,
 }
 
 impl SharedMemory {
-    pub fn new(hosts: &Vec<String>) -> Self {
-        SharedMemory {
+    pub fn new(hosts: &Vec<String>, send: UdpSocket, recv: UdpSocket) -> Self {
+        Self {
             hosts: hosts
                 .iter()
                 .map(|h| match h.parse() {
@@ -27,27 +31,30 @@ impl SharedMemory {
                 })
                 .filter_map(|h| h)
                 .collect(),
-            memory: Self::init_memory(),
+            sender: Sender::new(send),
+            receiver: Receiver::new(recv),
         }
     }
 
-    fn init_memory() -> Memory {
-        Memory {
-            bytes: Some(Bytes {
-                payload: Vec::new(),
-            }),
-            text: Some(Text {
-                data: String::new(),
-            }),
+    pub fn receive(&self) -> JoinHandle<()> {
+        self.receiver.receive()
+    }
+
+    pub fn test_sending(&self) {
+        loop {
+            for addr in &self.hosts {
+                self.sender
+                    .send("Hello from sender!".as_bytes(), addr.clone())
+                    .expect_or_log("Failed to send message!");
+                trace!("UDP-package sent!");
+            }
+            thread::sleep(Duration::from_secs(1));
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use memory::Memory;
-    use prost::Message;
-
     use super::*;
 
     #[test]
@@ -65,28 +72,5 @@ mod tests {
         ];
 
         assert_eq!(result.hosts, expected);
-    }
-
-    #[test]
-    fn test_new_proto_memory() {
-        let hosts = vec![];
-        let mut result = SharedMemory::new(&hosts);
-
-        result.memory.bytes = Some(Bytes {
-            payload: vec![4, 2, 2, 3],
-        });
-        result.memory.text = Some(Text {
-            data: "hello from Rust!".to_owned(),
-        });
-
-        let mut serialized = Vec::new();
-        serialized.reserve(result.memory.bytes.as_ref().unwrap().encoded_len());
-
-        let _ = result.memory.bytes.unwrap().encode(&mut serialized);
-
-        let mut serialized = Vec::new();
-        serialized.reserve(result.memory.text.as_ref().unwrap().encoded_len());
-
-        let _ = result.memory.text.unwrap().encode(&mut serialized);
     }
 }
