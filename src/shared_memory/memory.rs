@@ -28,7 +28,7 @@ mod tests {
 
     #[test]
     fn test_callback_map() {
-        let update_callback = Box::new(|_, _|{});
+        let update_callback = Box::new(|_, _| {});
         let instace = Memory {
             first: Arc::new(Slot::new(42, 0x42, update_callback)),
         };

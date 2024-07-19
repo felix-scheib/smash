@@ -1,28 +1,28 @@
 use std::{
-    ops::{Deref, DerefMut}, sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}, thread
+    ops::{Deref, DerefMut},
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+    thread,
 };
 
 use serde::{Deserialize, Serialize};
 
-struct OnDropWriteGuard<'a, 'b, T>
+struct OnDropWriteGuard<'a, T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
     guard: RwLockWriteGuard<'a, T>,
-    update: &'b Slot<T>,
 }
 
-impl<'a, T> Drop for OnDropWriteGuard<'_, '_, T>
+impl<'a, T> Drop for OnDropWriteGuard<'_, T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
     fn drop(&mut self) {
         println!("Dropped!");
-        self.update.update();
     }
 }
 
-impl<'a, T> Deref for OnDropWriteGuard<'_, '_, T>
+impl<'a, T> Deref for OnDropWriteGuard<'_, T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
@@ -32,7 +32,7 @@ where
     }
 }
 
-impl<'a, T> DerefMut for OnDropWriteGuard<'_, '_, T>
+impl<'a, T> DerefMut for OnDropWriteGuard<'_, T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
@@ -71,22 +71,19 @@ where
         self.data.read().unwrap()
     }
 
-    pub fn write(&self) -> OnDropWriteGuard<'_, '_, T> {
+    pub fn write(&self) -> OnDropWriteGuard<'_, T> {
         OnDropWriteGuard {
             guard: self.data.write().unwrap(),
-            update: &self,
         }
     }
 
     fn serialize(&self) -> Vec<u8> {
         let data = { self.data.try_read().unwrap() };
-        //bincode::serialize(&*data).unwrap()
-
-        Vec::new()
-    } 
+        bincode::serialize(&*data).unwrap()
+    }
 
     pub fn update(&self) {
-        //TODO: implement update-logic for sender, serialized T and handle
+        // TODO: improve handling without the need of an explicit call
         println!("Update triggered!");
 
         (self.update_callback)(self.handle, self.serialize());
@@ -98,14 +95,13 @@ where
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_new() {
-        let update_callback = Box::new(|_, _|{});
+        let update_callback = Box::new(|_, _| {});
         let instance = Slot::new(42i32, 0x42, update_callback);
 
         assert_eq!(instance.data.read().unwrap().to_owned(), 42i32);
@@ -114,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let update_callback = Box::new(|_, _|{});
+        let update_callback = Box::new(|_, _| {});
         let instance = Slot::new(42i32, 0x42, update_callback);
 
         let result = { *instance.read() };
@@ -124,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_write() {
-        let update_callback = Box::new(|_, _|{});
+        let update_callback = Box::new(|_, _| {});
         let instance = Slot::new(42i32, 0x42, update_callback);
 
         {
@@ -139,17 +135,17 @@ mod tests {
 
     #[test]
     fn test_update_callback() {
-        let update_callback = Box::new(|h, v|{
+        let update_callback = Box::new(|h, v| {
             assert_eq!(h, 0x42);
+            assert_eq!(v, bincode::serialize(&23i32).unwrap())
         });
         let instance = Slot::new(42i32, 0x42, update_callback);
 
-        /*
         {
             let mut data = instance.write();
             *data = 23;
-        }             
-        */
-  
-    }    
+        }
+        // TODO: this is workaround!!
+        instance.update();
+    }
 }
