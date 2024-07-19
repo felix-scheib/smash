@@ -1,3 +1,6 @@
+#[cfg(target_os = "hermit")]
+use hermit as _;
+
 use std::{env, net::UdpSocket};
 
 use smash::{config::Config, shared_memory::SharedMemory};

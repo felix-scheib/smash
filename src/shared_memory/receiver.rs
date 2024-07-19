@@ -35,7 +35,11 @@ impl Receiver {
 
                 digest.update(&buf[0..amount]);
 
-                trace!("Received UDP-package from: {:?} with checksum: {}", source, digest.finalize());
+                trace!(
+                    "Received UDP-package from: {:?} with checksum: {}",
+                    source,
+                    digest.finalize()
+                );
 
                 buf.iter_mut().for_each(|x| *x = 0x00);
             }
