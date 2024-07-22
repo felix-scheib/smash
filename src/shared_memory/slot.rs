@@ -1,7 +1,7 @@
 use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use serde::{Deserialize, Serialize};
-use tracing::{debug, span, trace, Level};
+use tracing::{debug, span, Level};
 
 use super::{IncommingObserver, OutgoingObserver, SharedMemory};
 
