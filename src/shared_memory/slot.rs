@@ -1,8 +1,7 @@
-use std::{
-    sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak},
-};
+use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use serde::{Deserialize, Serialize};
+use tracing::{debug, span, trace, Level};
 
 use super::{IncommingObserver, OutgoingObserver, SharedMemory};
 
@@ -47,8 +46,9 @@ where
 
     pub fn update(&self) {
         // TODO:improve handling without the need of an explicit call
-        println!("Update in Slot triggered!");
-        
+        let _span = span!(Level::DEBUG, "udapte").entered();
+        debug!("Write event on Slot {:#x} occured!", self.handle);
+
         if let Some(shared_memory) = self.shared_memory.lock().unwrap().upgrade() {
             let payload = self.serialize();
             shared_memory.notify(self.handle, payload.clone());
@@ -56,7 +56,7 @@ where
     }
 
     fn serialize(&self) -> Vec<u8> {
-        let data = { self.data.try_read().unwrap() };
+        let data = { self.data.read().unwrap() };
         bincode::serialize(&*data).unwrap()
     }
 }
@@ -66,7 +66,15 @@ where
     T: Serialize + for<'de> Deserialize<'de>,
 {
     fn notify(&self, payload: Vec<u8>) {
-        println!("{} received incomming message!", self.handle);
+        let _span = span!(Level::DEBUG, "notify").entered();
+        debug!("Slot {:#x} received incomming message!", self.handle);
+
+        let deserialized: Result<T, _> = bincode::deserialize(payload.as_slice());
+
+        match deserialized {
+            Ok(v) => *self.data.write().unwrap() = v,
+            Err(e) => debug!("Failed to deserialize data: {:#?}", e),
+        }
     }
 }
 

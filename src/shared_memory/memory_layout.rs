@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc},
-};
+use std::{collections::HashMap, sync::Arc};
 
 use super::{as_trait, slot::Slot, IncommingObserver, SharedMemory};
 
@@ -48,21 +45,3 @@ impl MemoryLayout {
         Arc::clone(&self.third)
     }
 }
-
-/*
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_callback_map() {
-        let instace = Memory {
-            first: Arc::new(Slot::new(42, 0x42)),
-        };
-
-        for (k, v) in instace.callback_map() {
-            assert_eq!(v(), k);
-        }
-    }
-}
-*/
