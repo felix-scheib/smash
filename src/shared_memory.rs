@@ -2,16 +2,29 @@ use receiver::Receiver;
 use sender::Sender;
 use std::{
     net::{SocketAddr, UdpSocket},
+    sync::Arc,
     thread::{self, JoinHandle},
     time::Duration,
 };
 use tracing::{error, trace};
 use tracing_unwrap::ResultExt;
 
-mod memory;
+mod memory_layout;
 mod receiver;
 mod sender;
 mod slot;
+
+trait OutgoingObserver {
+    fn notify(&self, handle: usize, payload: Vec<u8>);
+}
+
+trait IncommingObserver {
+    fn notify(&self, payload: Vec<u8>);
+}
+
+fn as_trait<T: IncommingObserver + 'static>(arc: Arc<T>) -> Arc<dyn IncommingObserver> {
+    arc
+}
 
 pub struct SharedMemory {
     hosts: Vec<SocketAddr>,
@@ -53,4 +66,8 @@ impl SharedMemory {
             thread::sleep(Duration::from_secs(1));
         }
     }
+}
+
+impl OutgoingObserver for SharedMemory {
+    fn notify(&self, handle: usize, payload: Vec<u8>) {}
 }

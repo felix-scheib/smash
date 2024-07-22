@@ -1,48 +1,13 @@
 use std::{
-    ops::{Deref, DerefMut},
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
-    thread,
+    borrow::Borrow,
+    sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak},
 };
 
 use serde::{Deserialize, Serialize};
 
-/*
-struct OnDropWriteGuard<'a, T>
-where
-    T: Serialize + for<'de> Deserialize<'de>,
-{
-    guard: RwLockWriteGuard<'a, T>,
-}
+use super::{IncommingObserver, OutgoingObserver};
 
-impl<'a, T> Drop for OnDropWriteGuard<'_, T>
-where
-    T: Serialize + for<'de> Deserialize<'de>,
-{
-    fn drop(&mut self) {
-        println!("Dropped!");
-    }
-}
-
-impl<'a, T> Deref for OnDropWriteGuard<'_, T>
-where
-    T: Serialize + for<'de> Deserialize<'de>,
-{
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        &self.guard
-    }
-}
-
-impl<'a, T> DerefMut for OnDropWriteGuard<'_, T>
-where
-    T: Serialize + for<'de> Deserialize<'de>,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.guard
-    }
-}
-*/
-
+mod on_drop_write_guard;
 
 type Callback = Box<dyn Fn(usize, Vec<u8>)>;
 pub struct Slot<T>
@@ -51,18 +16,18 @@ where
 {
     data: RwLock<T>,
     handle: usize,
-    update_callback: Callback,
+    observers: Mutex<Vec<Weak<dyn OutgoingObserver>>>,
 }
 
 impl<T> Slot<T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
-    pub fn new(data: T, handle: usize, update_callback: Callback) -> Self {
+    pub fn new(data: T, handle: usize) -> Self {
         Self {
             data: RwLock::new(data),
             handle,
-            update_callback,
+            observers: Mutex::new(Vec::new()),
         }
     }
 
@@ -74,25 +39,38 @@ where
         self.data.read().unwrap()
     }
 
-    pub fn write(&self) ->  RwLockWriteGuard<'_, T> {
+    pub fn write(&self) -> RwLockWriteGuard<'_, T> {
         self.data.write().unwrap()
+    }
+
+    pub fn register(&self, observer: Weak<dyn OutgoingObserver>) {
+        self.observers.lock().unwrap().push(observer)
+    }
+
+    pub fn update(&self) {
+        // TODO: improve handling without the need of an explicit call
+        println!("Update in Slot triggered!");
+        let payload = self.serialize();
+
+        for observer in self.observers.lock().unwrap().iter() {
+            if let Some(observer) = observer.upgrade() {
+                observer.notify(self.handle, payload.clone());
+            }
+        }
     }
 
     fn serialize(&self) -> Vec<u8> {
         let data = { self.data.try_read().unwrap() };
         bincode::serialize(&*data).unwrap()
     }
+}
 
-    pub fn update(&self) {
-        // TODO: improve handling without the need of an explicit call
-        println!("Update triggered!");
-
-        (self.update_callback)(self.handle, self.serialize());
-    }
-
-    pub fn notify_chages(&self) -> usize {
-        //TODO: implement update-logic for receiver
-        self.handle
+impl<T> IncommingObserver for Slot<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
+    fn notify(&self, payload: Vec<u8>) {
+        println!("{} received incomming message!", self.handle);
     }
 }
 
@@ -102,8 +80,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let update_callback = Box::new(|_, _| {});
-        let instance = Slot::new(42i32, 0x42, update_callback);
+        let instance = Slot::new(42i32, 0x42);
 
         assert_eq!(instance.data.read().unwrap().to_owned(), 42i32);
         assert_eq!(instance.handle, 0x42);
@@ -111,8 +88,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let update_callback = Box::new(|_, _| {});
-        let instance = Slot::new(42i32, 0x42, update_callback);
+        let instance = Slot::new(42i32, 0x42);
 
         let result = { *instance.read() };
 
@@ -121,8 +97,7 @@ mod tests {
 
     #[test]
     fn test_write() {
-        let update_callback = Box::new(|_, _| {});
-        let instance = Slot::new(42i32, 0x42, update_callback);
+        let instance = Slot::new(42i32, 0x42);
 
         {
             let mut data = instance.write();
@@ -132,21 +107,5 @@ mod tests {
         let result = { *instance.read() };
 
         assert_eq!(result, 23i32);
-    }
-
-    #[test]
-    fn test_update_callback() {
-        let update_callback = Box::new(|h, v| {
-            assert_eq!(h, 0x42);
-            assert_eq!(v, bincode::serialize(&23i32).unwrap())
-        });
-        let instance = Slot::new(42i32, 0x42, update_callback);
-
-        {
-            let mut data = instance.write();
-            *data = 23;
-        }
-        // TODO: this is workaround!!
-        instance.update();
     }
 }
