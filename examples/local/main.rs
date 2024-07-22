@@ -27,4 +27,13 @@ fn main() {
 
     let sm = SharedMemory::new(&config.get_hosts(), send, recv);
     info!("Shared Memory initialized! Writer started");
+
+    let first = sm.memory_layout.first();
+
+    {
+        let mut value = first.write();
+        *value = 42;
+    }
+
+    first.update();
 }

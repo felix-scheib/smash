@@ -1,3 +1,4 @@
+use memory_layout::MemoryLayout;
 use receiver::Receiver;
 use sender::Sender;
 use std::{
@@ -30,11 +31,12 @@ pub struct SharedMemory {
     hosts: Vec<SocketAddr>,
     sender: Sender,
     receiver: Receiver,
+    pub memory_layout: MemoryLayout,
 }
 
 impl SharedMemory {
-    pub fn new(hosts: &Vec<String>, send: UdpSocket, recv: UdpSocket) -> Self {
-        Self {
+    pub fn new(hosts: &Vec<String>, send: UdpSocket, recv: UdpSocket) -> Arc<Self> {
+        let sm = Arc::new(Self {
             hosts: hosts
                 .iter()
                 .map(|h| match h.parse() {
@@ -48,7 +50,12 @@ impl SharedMemory {
                 .collect(),
             sender: Sender::new(send),
             receiver: Receiver::new(recv),
-        }
+            memory_layout: MemoryLayout::init(),
+        });
+
+        sm.memory_layout.register(&sm);
+
+        sm
     }
 
     pub fn receive(&self) -> JoinHandle<()> {
@@ -69,5 +76,7 @@ impl SharedMemory {
 }
 
 impl OutgoingObserver for SharedMemory {
-    fn notify(&self, handle: usize, payload: Vec<u8>) {}
+    fn notify(&self, handle: usize, payload: Vec<u8>) {
+        println!("Received incomming messagefrom {}!", handle);
+    }
 }

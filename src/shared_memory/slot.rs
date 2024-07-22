@@ -4,18 +4,17 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use super::{IncommingObserver, OutgoingObserver};
+use super::{IncommingObserver, OutgoingObserver, SharedMemory};
 
 mod on_drop_write_guard;
 
-type Callback = Box<dyn Fn(usize, Vec<u8>)>;
 pub struct Slot<T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
     data: RwLock<T>,
     handle: usize,
-    observers: Mutex<Vec<Weak<dyn OutgoingObserver>>>,
+    shared_memory: Mutex<Weak<SharedMemory>>,
 }
 
 impl<T> Slot<T>
@@ -26,7 +25,7 @@ where
         Self {
             data: RwLock::new(data),
             handle,
-            observers: Mutex::new(Vec::new()),
+            shared_memory: Mutex::new(Weak::new()),
         }
     }
 
@@ -42,19 +41,17 @@ where
         self.data.write().unwrap()
     }
 
-    pub fn register(&self, observer: Weak<dyn OutgoingObserver>) {
-        self.observers.lock().unwrap().push(observer)
+    pub fn register(&self, shared_memory: Weak<SharedMemory>) {
+        *self.shared_memory.lock().unwrap() = shared_memory;
     }
 
     pub fn update(&self) {
-        // TODO: improve handling without the need of an explicit call
+        // TODO:improve handling without the need of an explicit call
         println!("Update in Slot triggered!");
-        let payload = self.serialize();
-
-        for observer in self.observers.lock().unwrap().iter() {
-            if let Some(observer) = observer.upgrade() {
-                observer.notify(self.handle, payload.clone());
-            }
+        
+        if let Some(shared_memory) = self.shared_memory.lock().unwrap().upgrade() {
+            let payload = self.serialize();
+            shared_memory.notify(self.handle, payload.clone());
         }
     }
 
