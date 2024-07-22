@@ -6,6 +6,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+/*
 struct OnDropWriteGuard<'a, T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
@@ -40,6 +41,8 @@ where
         &mut self.guard
     }
 }
+*/
+
 
 type Callback = Box<dyn Fn(usize, Vec<u8>)>;
 pub struct Slot<T>
@@ -71,10 +74,8 @@ where
         self.data.read().unwrap()
     }
 
-    pub fn write(&self) -> OnDropWriteGuard<'_, T> {
-        OnDropWriteGuard {
-            guard: self.data.write().unwrap(),
-        }
+    pub fn write(&self) ->  RwLockWriteGuard<'_, T> {
+        self.data.write().unwrap()
     }
 
     fn serialize(&self) -> Vec<u8> {
