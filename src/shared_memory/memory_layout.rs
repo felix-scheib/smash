@@ -1,9 +1,9 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Weak},
+    sync::{Arc},
 };
 
-use super::{as_trait, slot::Slot, IncommingObserver, OutgoingObserver, SharedMemory};
+use super::{as_trait, slot::Slot, IncommingObserver, SharedMemory};
 
 /// Define Memory here!
 pub struct MemoryLayout {
