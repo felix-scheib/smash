@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::{Arc, Weak}};
 
 use super::{as_trait, slot::Slot, IncommingObserver, SharedMemory};
 
@@ -11,18 +11,12 @@ pub struct MemoryLayout {
 
 impl MemoryLayout {
     // TODO: create functions using macros
-    pub fn init() -> Self {
+    pub fn init(shared_memory: &Weak<SharedMemory>) -> Self {
         Self {
-            first: Arc::new(Slot::new(Default::default(), 0x01)),
-            second: Arc::new(Slot::new(Vec::new(), 0x02)),
-            third: Arc::new(Slot::new(String::new(), 0x03)),
+            first: Arc::new(Slot::new(Default::default(), 0x01, Weak::clone(&shared_memory))),
+            second: Arc::new(Slot::new(Vec::new(), 0x02, Weak::clone(&shared_memory))),
+            third: Arc::new(Slot::new(String::new(), 0x03, Weak::clone(&shared_memory))),
         }
-    }
-
-    pub fn register(&self, shared_memory: &Arc<SharedMemory>) {
-        self.first.register(Arc::downgrade(shared_memory));
-        self.second.register(Arc::downgrade(shared_memory));
-        self.third.register(Arc::downgrade(shared_memory));
     }
 
     pub fn as_map(&self) -> HashMap<usize, Arc<dyn IncommingObserver>> {

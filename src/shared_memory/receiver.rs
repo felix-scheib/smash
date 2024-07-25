@@ -1,28 +1,30 @@
 use std::{
+    collections::HashMap,
     net::UdpSocket,
-    sync::{RwLock, Weak},
+    sync::{Arc, RwLock, Weak},
     thread::{self, JoinHandle},
 };
 
+use serde::Serialize;
 use tracing::trace;
 use tracing_unwrap::ResultExt;
 
 use crate::networking::package::Package;
 
-use super::SharedMemory;
+use super::{IncommingObserver, SharedMemory};
 
 const BUFFER_SIZE: usize = 1_024;
 
 pub struct Receiver {
     sock: UdpSocket,
-    shared_memory: RwLock<Weak<SharedMemory>>,
+    shared_memory: Weak<SharedMemory>,
 }
 
 impl Receiver {
-    pub fn new(sock: UdpSocket) -> Self {
+    pub fn new(sock: UdpSocket, shared_memory: &Weak<SharedMemory>) -> Self {
         Self {
             sock,
-            shared_memory: RwLock::new(Weak::new()),
+            shared_memory: Weak::clone(shared_memory),
         }
     }
 
@@ -32,7 +34,8 @@ impl Receiver {
             .try_clone()
             .expect_or_log("Failed to clone Socket!");
 
-        let shared_memory = Weak::clone(&self.shared_memory.read().unwrap());
+        let shared_memory = Weak::clone(&self.shared_memory);
+
         thread::spawn(move || {
             let mut buf = [0x00; BUFFER_SIZE];
 
@@ -52,9 +55,5 @@ impl Receiver {
                 buf.iter_mut().for_each(|x| *x = 0x00);
             }
         })
-    }
-
-    pub fn register(&self, shared_memory: Weak<SharedMemory>) {
-        *self.shared_memory.write().unwrap() = shared_memory;
     }
 }

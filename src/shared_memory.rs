@@ -2,7 +2,10 @@ use memory_layout::MemoryLayout;
 use receiver::Receiver;
 use sender::Sender;
 use std::{
-    net::{SocketAddr, UdpSocket}, sync::{Arc}, thread::{self, JoinHandle}, time::Duration
+    net::{SocketAddr, UdpSocket},
+    sync::{Arc, Weak},
+    thread::{self, JoinHandle},
+    time::Duration,
 };
 use tracing::{error, trace};
 use tracing_unwrap::ResultExt;
@@ -35,7 +38,7 @@ pub struct SharedMemory {
 
 impl SharedMemory {
     pub fn new(hosts: &Vec<String>, send: UdpSocket, recv: UdpSocket) -> Arc<Self> {
-        let sm = Arc::new(Self {
+        Arc::new_cyclic(|weak| Self {
             hosts: hosts
                 .iter()
                 .map(|h| match h.parse() {
@@ -48,14 +51,9 @@ impl SharedMemory {
                 .filter_map(|h| h)
                 .collect(),
             sender: Sender::new(send),
-            receiver: Receiver::new(recv),
-            memory_layout: MemoryLayout::init(),
-        });
-
-        sm.memory_layout.register(&sm);
-        sm.receiver.register(Arc::downgrade(&sm));
-
-        sm
+            receiver: Receiver::new(recv, weak),
+            memory_layout: MemoryLayout::init(weak),
+        })
     }
 
     pub fn receive(&self) -> JoinHandle<()> {
@@ -79,10 +77,9 @@ impl SharedMemory {
 
         // TODO: create map at start!
         let map = self.memory_layout.as_map();
-        
+
         if let Some(v) = map.get(&package.header.handle) {
             v.notify(package.payload);
-
         } else {
             trace!("Handle {:#x} not found!", package.header.handle);
         }

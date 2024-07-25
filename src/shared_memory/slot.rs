@@ -13,18 +13,18 @@ where
 {
     data: RwLock<T>,
     handle: usize,
-    shared_memory: RwLock<Weak<SharedMemory>>,
+    shared_memory: Weak<SharedMemory>,
 }
 
 impl<T> Slot<T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
-    pub fn new(data: T, handle: usize) -> Self {
+    pub fn new(data: T, handle: usize, shared_memory: Weak<SharedMemory>) -> Self {
         Self {
             data: RwLock::new(data),
             handle,
-            shared_memory: RwLock::new(Weak::new()),
+            shared_memory,
         }
     }
 
@@ -39,17 +39,13 @@ where
     pub fn write(&self) -> RwLockWriteGuard<'_, T> {
         self.data.write().unwrap()
     }
-
-    pub fn register(&self, shared_memory: Weak<SharedMemory>) {
-        *self.shared_memory.write().unwrap() = shared_memory;
-    }
-
+    
     pub fn update(&self) {
         // TODO:improve handling without the need of an explicit call
         let _span = span!(Level::DEBUG, "udapte").entered();
         debug!("Write event on Slot {:#x} occured!", self.handle);
 
-        if let Some(shared_memory) = self.shared_memory.read().unwrap().upgrade() {
+        if let Some(shared_memory) = self.shared_memory.upgrade() {
             let payload = self.serialize();
             shared_memory.notify_write(self.handle, payload.clone());
         }
@@ -72,7 +68,10 @@ where
         let deserialized: Result<T, _> = bincode::deserialize(payload.as_slice());
 
         match deserialized {
-            Ok(v) => { *self.data.write().unwrap() = v; trace!("Slot {:#x} value updated!", self.handle); },
+            Ok(v) => {
+                *self.data.write().unwrap() = v;
+                trace!("Slot {:#x} value updated!", self.handle);
+            }
             Err(e) => debug!("Failed to deserialize data: {:#?}", e),
         }
     }
@@ -84,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let instance = Slot::new(42i32, 0x42);
+        let instance = Slot::new(42i32, 0x42, Weak::new());
 
         assert_eq!(instance.data.read().unwrap().to_owned(), 42i32);
         assert_eq!(instance.handle, 0x42);
@@ -92,7 +91,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let instance = Slot::new(42i32, 0x42);
+        let instance = Slot::new(42i32, 0x42, Weak::new());
 
         let result = { *instance.read() };
 
@@ -101,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_write() {
-        let instance = Slot::new(42i32, 0x42);
+        let instance = Slot::new(42i32, 0x42, Weak::new());
 
         {
             let mut data = instance.write();
