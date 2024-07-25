@@ -39,7 +39,7 @@ where
     pub fn write(&self) -> RwLockWriteGuard<'_, T> {
         self.data.write().unwrap()
     }
-    
+
     pub fn update(&self) {
         // TODO:improve handling without the need of an explicit call
         let _span = span!(Level::DEBUG, "udapte").entered();

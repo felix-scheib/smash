@@ -3,7 +3,7 @@ use receiver::Receiver;
 use sender::Sender;
 use std::{
     net::{SocketAddr, UdpSocket},
-    sync::{Arc, Weak},
+    sync::Arc,
     thread::{self, JoinHandle},
     time::Duration,
 };

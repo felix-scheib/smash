@@ -1,17 +1,15 @@
 use std::{
-    collections::HashMap,
     net::UdpSocket,
-    sync::{Arc, RwLock, Weak},
+    sync::Weak,
     thread::{self, JoinHandle},
 };
 
-use serde::Serialize;
 use tracing::trace;
 use tracing_unwrap::ResultExt;
 
 use crate::networking::package::Package;
 
-use super::{IncommingObserver, SharedMemory};
+use super::SharedMemory;
 
 const BUFFER_SIZE: usize = 1_024;
 
