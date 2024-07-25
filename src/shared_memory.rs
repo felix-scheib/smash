@@ -2,13 +2,12 @@ use memory_layout::MemoryLayout;
 use receiver::Receiver;
 use sender::Sender;
 use std::{
-    net::{SocketAddr, UdpSocket},
-    sync::Arc,
-    thread::{self, JoinHandle},
-    time::Duration,
+    borrow::Borrow, collections::HashMap, net::{SocketAddr, UdpSocket}, sync::{Arc, Mutex}, thread::{self, JoinHandle}, time::Duration
 };
 use tracing::{error, trace};
 use tracing_unwrap::ResultExt;
+
+use crate::networking::package::Package;
 
 mod memory_layout;
 mod receiver;
@@ -16,10 +15,10 @@ mod sender;
 mod slot;
 
 trait OutgoingObserver {
-    fn notify(&self, handle: usize, payload: Vec<u8>);
+    fn notify_write(&self, handle: usize, payload: Vec<u8>);
 }
 
-trait IncommingObserver {
+pub trait IncommingObserver {
     fn notify(&self, payload: Vec<u8>);
 }
 
@@ -54,6 +53,7 @@ impl SharedMemory {
         });
 
         sm.memory_layout.register(&sm);
+        sm.receiver.register(Arc::downgrade(&sm));
 
         sm
     }
@@ -66,17 +66,37 @@ impl SharedMemory {
         loop {
             for addr in &self.hosts {
                 self.sender
-                    .send("Hello from sender!".as_bytes(), addr.clone())
+                    .send("Hello from sender!".as_bytes(), addr)
                     .expect_or_log("Failed to send message!");
                 trace!("UDP-package sent!");
             }
             thread::sleep(Duration::from_secs(1));
         }
     }
+
+    pub fn notify_change(&self, package: Package) {
+        trace!("Change notification received!");
+
+        // TODO: create map at start!
+        let map = self.memory_layout.as_map();
+        
+        if let Some(v) = map.get(&package.header.handle) {
+            v.notify(package.payload);
+
+        } else {
+            trace!("Handle {:#x} not found!", package.header.handle);
+        }
+    }
 }
 
 impl OutgoingObserver for SharedMemory {
-    fn notify(&self, handle: usize, payload: Vec<u8>) {
-        println!("Received incomming messagefrom {}!", handle);
+    fn notify_write(&self, handle: usize, payload: Vec<u8>) {
+        trace!("Received incomming message from {:#x}!", handle);
+
+        let package = Package::new(handle, payload);
+
+        for host in &self.hosts {
+            let _ = self.sender.send(&package.to_vec(), host);
+        }
     }
 }

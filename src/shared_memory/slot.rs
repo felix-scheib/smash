@@ -1,7 +1,7 @@
 use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use serde::{Deserialize, Serialize};
-use tracing::{debug, span, Level};
+use tracing::{debug, span, trace, Level};
 
 use super::{IncommingObserver, OutgoingObserver, SharedMemory};
 
@@ -13,7 +13,7 @@ where
 {
     data: RwLock<T>,
     handle: usize,
-    shared_memory: Mutex<Weak<SharedMemory>>,
+    shared_memory: RwLock<Weak<SharedMemory>>,
 }
 
 impl<T> Slot<T>
@@ -24,7 +24,7 @@ where
         Self {
             data: RwLock::new(data),
             handle,
-            shared_memory: Mutex::new(Weak::new()),
+            shared_memory: RwLock::new(Weak::new()),
         }
     }
 
@@ -41,7 +41,7 @@ where
     }
 
     pub fn register(&self, shared_memory: Weak<SharedMemory>) {
-        *self.shared_memory.lock().unwrap() = shared_memory;
+        *self.shared_memory.write().unwrap() = shared_memory;
     }
 
     pub fn update(&self) {
@@ -49,9 +49,9 @@ where
         let _span = span!(Level::DEBUG, "udapte").entered();
         debug!("Write event on Slot {:#x} occured!", self.handle);
 
-        if let Some(shared_memory) = self.shared_memory.lock().unwrap().upgrade() {
+        if let Some(shared_memory) = self.shared_memory.read().unwrap().upgrade() {
             let payload = self.serialize();
-            shared_memory.notify(self.handle, payload.clone());
+            shared_memory.notify_write(self.handle, payload.clone());
         }
     }
 
@@ -72,7 +72,7 @@ where
         let deserialized: Result<T, _> = bincode::deserialize(payload.as_slice());
 
         match deserialized {
-            Ok(v) => *self.data.write().unwrap() = v,
+            Ok(v) => { *self.data.write().unwrap() = v; trace!("Slot {:#x} value updated!", self.handle); },
             Err(e) => debug!("Failed to deserialize data: {:#?}", e),
         }
     }

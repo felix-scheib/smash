@@ -28,6 +28,8 @@ fn main() {
     let sm = SharedMemory::new(&config.get_hosts(), send, recv);
     info!("Shared Memory initialized! Writer started");
 
+    let handle = sm.receive();
+
     let first = sm.memory_layout.first();
 
     {
@@ -36,4 +38,6 @@ fn main() {
     }
 
     first.update();
+
+    let _ = handle.join();
 }

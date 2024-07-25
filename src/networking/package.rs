@@ -1,6 +1,7 @@
 use std::mem::size_of;
 
 use crc::{Crc, CRC_32_CKSUM};
+use tracing::trace;
 
 // TODO
 const PREAMBLE: &str = "SMasH";
@@ -18,9 +19,9 @@ pub enum Kind {
 */
 
 #[derive(Debug, PartialEq)]
-struct Header {
+pub struct Header {
     preamble: &'static str,
-    handle: usize,
+    pub handle: usize,
     checksum: u32,
     size: usize,
 }
@@ -53,12 +54,14 @@ impl Header {
 
     pub fn from_slice(data: &[u8]) -> Option<Self> {
         if data.len() < HEADER_SIZE {
+            trace!("Invalid header lenght: {}", data.len());
             return None;
         }
 
         let preamble = &*String::from_utf8_lossy(&data[0..PREAMBLE.len()]);
 
         if preamble != PREAMBLE {
+            trace!("Wrong format!");
             return None;
         }
 
@@ -74,19 +77,23 @@ impl Header {
         let end = start + size_of::<usize>();
         let size = usize::from_be_bytes(data[start..end].try_into().unwrap());
 
-        Some(Self {
+        let header = Self {
             preamble: PREAMBLE,
             handle,
             checksum,
             size,
-        })
+        };
+
+        trace!("Header accepted: {:?}", header);
+
+        Some(header)
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Package {
-    header: Header,
-    payload: Vec<u8>,
+    pub header: Header,
+    pub payload: Vec<u8>,
 }
 
 impl Package {
@@ -123,11 +130,24 @@ impl Package {
         let content = &data[start..end];
 
         if content.len() != end - start {
+            trace!("Invalid content lenght: {}", content.len());
+            return None;
+        }
+
+        let checksum = checksum(content);
+
+        if header.checksum != checksum {
+            trace!(
+                "Invalid checksum! expected: {:#x}, actual: {:#x}",
+                header.checksum,
+                checksum
+            );
             return None;
         }
 
         let payload = content.to_vec();
 
+        trace!("Package for Slot {:#x} parsed!", header.handle);
         Some(Self { header, payload })
     }
 }
