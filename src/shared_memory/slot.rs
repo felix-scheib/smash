@@ -1,4 +1,4 @@
-use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use serde::{Deserialize, Serialize};
 use tracing::{debug, span, trace, Level};

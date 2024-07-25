@@ -2,7 +2,7 @@ use memory_layout::MemoryLayout;
 use receiver::Receiver;
 use sender::Sender;
 use std::{
-    borrow::Borrow, collections::HashMap, net::{SocketAddr, UdpSocket}, sync::{Arc, Mutex}, thread::{self, JoinHandle}, time::Duration
+    net::{SocketAddr, UdpSocket}, sync::{Arc}, thread::{self, JoinHandle}, time::Duration
 };
 use tracing::{error, trace};
 use tracing_unwrap::ResultExt;

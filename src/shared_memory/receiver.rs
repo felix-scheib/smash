@@ -1,6 +1,6 @@
 use std::{
     net::UdpSocket,
-    sync::{Mutex, RwLock, Weak},
+    sync::{RwLock, Weak},
     thread::{self, JoinHandle},
 };
 

@@ -5,6 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
 struct OnDropWriteGuard<'a, T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
