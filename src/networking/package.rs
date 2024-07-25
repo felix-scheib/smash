@@ -1,7 +1,10 @@
+use std::mem::size_of;
+
 use crc::{Crc, CRC_32_CKSUM};
 
 // TODO
 const PREAMBLE: &str = "SMasH";
+const HEADER_SIZE: usize = 25;
 //const MTU: usize = 1_500;
 
 /*
@@ -14,7 +17,7 @@ pub enum Kind {
 }
 */
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Header {
     preamble: &'static str,
     handle: usize,
@@ -49,12 +52,38 @@ impl Header {
     }
 
     pub fn from_slice(data: &[u8]) -> Option<Self> {
-        // TODO:
-        None
+        if data.len() < HEADER_SIZE {
+            return None;
+        }
+
+        let preamble = &*String::from_utf8_lossy(&data[0..PREAMBLE.len()]);
+
+        if preamble != PREAMBLE {
+            return None;
+        }
+
+        let start = PREAMBLE.len();
+        let end = start + size_of::<usize>();
+        let handle = usize::from_be_bytes(data[start..end].try_into().unwrap());
+
+        let start = end;
+        let end = start + size_of::<u32>();
+        let checksum = u32::from_be_bytes(data[start..end].try_into().unwrap());
+
+        let start = end;
+        let end = start + size_of::<usize>();
+        let size = usize::from_be_bytes(data[start..end].try_into().unwrap());
+
+        Some(Self {
+            preamble: PREAMBLE,
+            handle,
+            checksum,
+            size,
+        })
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Package {
     header: Header,
     payload: Vec<u8>,
@@ -81,9 +110,25 @@ impl Package {
         vec
     }
 
-    pub fn from_slice() -> Option<Self> {
-        // TODO:
-        None
+    pub fn from_slice(data: &[u8]) -> Option<Self> {
+        let header = Header::from_slice(data);
+        if header == None {
+            return None;
+        }
+        let header = header.unwrap();
+
+        let start = HEADER_SIZE;
+        let end = start + header.size;
+
+        let content = &data[start..end];
+
+        if content.len() != end - start {
+            return None;
+        }
+
+        let payload = content.to_vec();
+
+        Some(Self { header, payload })
     }
 }
 
@@ -132,5 +177,77 @@ mod tests {
         let start = stop;
         let stop = start + size.len();
         assert_eq!(&vec[start..stop], size);
+    }
+
+    #[test]
+    fn test_header_from_slice() {
+        // Header length
+        let slice = "".as_bytes();
+
+        assert_eq!(Header::from_slice(slice), None);
+
+        let header = Header {
+            preamble: PREAMBLE,
+            handle: Default::default(),
+            checksum: Default::default(),
+            size: Default::default(),
+        };
+        let vec = header.to_vec();
+
+        assert_eq!(Header::from_slice(vec.as_slice()), Some(header));
+
+        // Preamble
+        let header = Header {
+            preamble: "",
+            handle: Default::default(),
+            checksum: Default::default(),
+            size: Default::default(),
+        };
+        let vec = header.to_vec();
+
+        assert_eq!(Header::from_slice(vec.as_slice()), None);
+
+        let header = Header {
+            preamble: PREAMBLE,
+            handle: Default::default(),
+            checksum: Default::default(),
+            size: Default::default(),
+        };
+        let vec = header.to_vec();
+
+        assert_eq!(Header::from_slice(vec.as_slice()), Some(header));
+
+        // Fields
+        let header = Header {
+            preamble: PREAMBLE,
+            handle: 0x42,
+            checksum: 0x23,
+            size: 0x00,
+        };
+        let vec = header.to_vec();
+
+        assert_eq!(Header::from_slice(vec.as_slice()), Some(header));
+    }
+
+    #[test]
+    fn test_package_from_slice() {
+        // Header length
+        let data = "".as_bytes();
+
+        assert_eq!(Package::from_slice(data), None);
+
+        let package = Package {
+            header: Header {
+                preamble: PREAMBLE,
+                handle: Default::default(),
+                checksum: Default::default(),
+                size: 0x00,
+            },
+            payload: data.to_vec(),
+        };
+
+        let vec = package.to_vec();
+
+        assert_eq!(Package::from_slice(vec.as_slice()), Some(package));
     }
 }
