@@ -28,6 +28,8 @@ impl Config {
     pub fn new(args: &Vec<String>) -> Self {
         let args = Args::new(args);
 
+        println!("Args: {:#?}", args);
+
         let config = match args.get_key(CONFIG_FILE_KEY) {
             Some(config_file) => fs::read_to_string(config_file),
             None => Err(io::Error::new(

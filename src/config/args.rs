@@ -4,6 +4,7 @@ const DELIMITER: char = '=';
 
 /// Wrapper for generating a `HashMap<String, String>` from a `Vec<String>`.
 /// Valid key-value pairs are in the pattern `foo=bar`.
+#[derive(Debug)]
 pub struct Args {
     args: HashMap<String, String>,
 }
