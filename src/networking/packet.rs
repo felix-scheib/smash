@@ -3,24 +3,21 @@ use std::mem::size_of;
 use crc::{Crc, CRC_32_CKSUM};
 use tracing::trace;
 
-// TODO
 const PREAMBLE: &str = "SMasH";
 const HEADER_SIZE: usize = 25;
 //const MTU: usize = 1_500;
 
-/*
 #[derive(Debug)]
-pub enum Kind {
-    SINGLE,
-    SEGMENT,
-    NACK,
-    REPEAT,
+#[repr(u8)]
+pub enum Type {
+    SINGLE(usize),
+    NACK(usize),
 }
-*/
 
 #[derive(Debug, PartialEq)]
 pub struct Header {
     preamble: &'static str,
+
     pub handle: usize,
     checksum: u32,
     size: usize,
@@ -91,12 +88,12 @@ impl Header {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Package {
+pub struct Packet {
     pub header: Header,
     pub payload: Vec<u8>,
 }
 
-impl Package {
+impl Packet {
     pub fn new(handle: usize, payload: Vec<u8>) -> Self {
         let size = payload.len();
         let checksum = checksum(&payload[0..size]);
@@ -147,7 +144,7 @@ impl Package {
 
         let payload = content.to_vec();
 
-        trace!("Package for Slot {:#x} parsed!", header.handle);
+        trace!("Packet for Slot {:#x} parsed!", header.handle);
         Some(Self { header, payload })
     }
 }
@@ -250,13 +247,13 @@ mod tests {
     }
 
     #[test]
-    fn test_package_from_slice() {
+    fn test_packets_from_slice() {
         // Header length
         let data = "".as_bytes();
 
-        assert_eq!(Package::from_slice(data), None);
+        assert_eq!(Packet::from_slice(data), None);
 
-        let package = Package {
+        let packet = Packet {
             header: Header {
                 preamble: PREAMBLE,
                 handle: Default::default(),
@@ -266,8 +263,8 @@ mod tests {
             payload: data.to_vec(),
         };
 
-        let vec = package.to_vec();
+        let vec = packet.to_vec();
 
-        assert_eq!(Package::from_slice(vec.as_slice()), Some(package));
+        assert_eq!(Packet::from_slice(vec.as_slice()), Some(packet));
     }
 }

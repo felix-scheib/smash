@@ -10,7 +10,7 @@ use std::{
 use tracing::{error, trace};
 use tracing_unwrap::ResultExt;
 
-use crate::networking::package::Package;
+use crate::networking::packet::Packet;
 
 mod memory_layout;
 mod receiver;
@@ -66,21 +66,21 @@ impl SharedMemory {
                 self.sender
                     .send("Hello from sender!".as_bytes(), addr)
                     .expect_or_log("Failed to send message!");
-                trace!("UDP-package sent!");
+                trace!("UDP packet sent!");
             }
             thread::sleep(Duration::from_secs(1));
         }
     }
 
-    pub fn notify_change(&self, package: Package) {
+    pub fn notify_change(&self, packet: Packet) {
         trace!("Change notification received!");
 
-        let handle = package.header.handle;
+        let handle = packet.header.handle;
 
         if let Some(v) = self.memory_layout.get_slot(handle) {
-            v.notify(package.payload);
+            v.notify(packet.payload);
         } else {
-            trace!("Handle {:#x} not found!", package.header.handle);
+            trace!("Handle {:#x} not found!", packet.header.handle);
         }
     }
 }
@@ -89,10 +89,10 @@ impl OutgoingObserver for SharedMemory {
     fn notify_write(&self, handle: usize, payload: Vec<u8>) {
         trace!("Received incomming message from {:#x}!", handle);
 
-        let package = Package::new(handle, payload);
+        let packet = Packet::new(handle, payload);
 
         for host in &self.hosts {
-            let _ = self.sender.send(&package.to_vec(), host);
+            let _ = self.sender.send(&packet.to_vec(), host);
         }
     }
 }

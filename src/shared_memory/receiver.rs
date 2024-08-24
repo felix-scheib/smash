@@ -7,7 +7,7 @@ use std::{
 use tracing::trace;
 use tracing_unwrap::ResultExt;
 
-use crate::networking::package::Package;
+use crate::networking::packet::Packet;
 
 use super::SharedMemory;
 
@@ -42,11 +42,11 @@ impl Receiver {
                     .recv_from(&mut buf)
                     .expect("Failed to read from socket!");
 
-                trace!("Received UDP-package from: {:?}", source);
+                trace!("Received UDP packet from: {:?}", source);
 
-                if let Some(package) = Package::from_slice(&buf[0..amount]) {
+                if let Some(packet) = Packet::from_slice(&buf[0..amount]) {
                     if let Some(shared_memory) = shared_memory.upgrade() {
-                        shared_memory.notify_change(package);
+                        shared_memory.notify_change(packet);
                     }
                 }
 
