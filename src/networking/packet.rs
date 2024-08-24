@@ -17,7 +17,6 @@ pub enum Type {
 #[derive(Debug, PartialEq)]
 pub struct Header {
     preamble: &'static str,
-
     pub handle: usize,
     checksum: u32,
     size: usize,
@@ -253,15 +252,7 @@ mod tests {
 
         assert_eq!(Packet::from_slice(data), None);
 
-        let packet = Packet {
-            header: Header {
-                preamble: PREAMBLE,
-                handle: Default::default(),
-                checksum: Default::default(),
-                size: 0x00,
-            },
-            payload: data.to_vec(),
-        };
+        let packet = Packet::new(0x00, data.to_vec());
 
         let vec = packet.to_vec();
 
