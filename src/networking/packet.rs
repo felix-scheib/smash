@@ -1,13 +1,15 @@
 use std::mem::size_of;
 
 use crc::{Crc, CRC_32_CKSUM};
+use serde::{Deserialize, Serialize};
 use tracing::trace;
 
 const PREAMBLE: &str = "SMasH";
-const HEADER_SIZE: usize = 25;
+const TYPE_SIZE: usize = 12;
+const HEADER_SIZE: usize = 25 + TYPE_SIZE;
 //const MTU: usize = 1_500;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[repr(u8)]
 pub enum Type {
     SINGLE(usize),
@@ -17,6 +19,7 @@ pub enum Type {
 #[derive(Debug, PartialEq)]
 pub struct Header {
     preamble: &'static str,
+    packet_type: Type,
     pub handle: usize,
     checksum: u32,
     size: usize,
@@ -26,6 +29,7 @@ impl Header {
     pub fn new(handle: usize, checksum: u32, size: usize) -> Self {
         Self {
             preamble: PREAMBLE,
+            packet_type: Type::SINGLE(0x00),
             handle,
             checksum,
             size,
@@ -34,13 +38,16 @@ impl Header {
 
     pub fn to_vec(&self) -> Vec<u8> {
         let preamble = self.preamble.as_bytes();
+        let packet_type = bincode::serialize(&self.packet_type).unwrap();
         let handle = self.handle.to_be_bytes();
         let checksum = self.checksum.to_be_bytes();
         let size = self.size.to_be_bytes();
 
-        let mut vec =
-            Vec::with_capacity(preamble.len() + handle.len() + checksum.len() + size.len());
+        let mut vec = Vec::with_capacity(
+            preamble.len() + TYPE_SIZE + handle.len() + checksum.len() + size.len(),
+        );
         vec.extend_from_slice(preamble);
+        vec.extend_from_slice(&packet_type);
         vec.extend_from_slice(&handle);
         vec.extend_from_slice(&checksum);
         vec.extend_from_slice(&size);
@@ -62,6 +69,10 @@ impl Header {
         }
 
         let start = PREAMBLE.len();
+        let end = start + TYPE_SIZE;
+        let packet_type = bincode::deserialize(&data[start..end]).unwrap();
+
+        let start = end;
         let end = start + size_of::<usize>();
         let handle = usize::from_be_bytes(data[start..end].try_into().unwrap());
 
@@ -75,6 +86,7 @@ impl Header {
 
         let header = Self {
             preamble: PREAMBLE,
+            packet_type,
             handle,
             checksum,
             size,
@@ -162,12 +174,14 @@ mod tests {
 
     #[test]
     fn test_header_to_vec() {
+        let packet_type = Type::SINGLE(0x00);
         let handle = 0x42;
         let cksum = 0x23;
         let size = 0x00;
 
         let header = Header {
             preamble: PREAMBLE,
+            packet_type: packet_type.clone(),
             handle,
             checksum: cksum,
             size,
@@ -178,6 +192,11 @@ mod tests {
         let start = 0;
         let stop = start + PREAMBLE.len();
         assert_eq!(&vec[start..stop], PREAMBLE.as_bytes());
+
+        let packet_type = bincode::serialize(&packet_type).unwrap();
+        let start = stop;
+        let stop = start + TYPE_SIZE;
+        assert_eq!(&vec[start..stop], packet_type);
 
         let handle = handle.to_be_bytes();
         let start = stop;
@@ -204,6 +223,7 @@ mod tests {
 
         let header = Header {
             preamble: PREAMBLE,
+            packet_type: Type::SINGLE(0x00),
             handle: Default::default(),
             checksum: Default::default(),
             size: Default::default(),
@@ -215,6 +235,7 @@ mod tests {
         // Preamble
         let header = Header {
             preamble: "",
+            packet_type: Type::SINGLE(0x00),
             handle: Default::default(),
             checksum: Default::default(),
             size: Default::default(),
@@ -225,6 +246,7 @@ mod tests {
 
         let header = Header {
             preamble: PREAMBLE,
+            packet_type: Type::SINGLE(0x00),
             handle: Default::default(),
             checksum: Default::default(),
             size: Default::default(),
@@ -236,6 +258,7 @@ mod tests {
         // Fields
         let header = Header {
             preamble: PREAMBLE,
+            packet_type: Type::SINGLE(0x00),
             handle: 0x42,
             checksum: 0x23,
             size: 0x00,
