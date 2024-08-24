@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Weak},
-};
+use std::sync::{Arc, Weak};
 
 use super::{as_trait, slot::Slot, IncommingObserver, SharedMemory};
 
@@ -26,20 +23,12 @@ impl MemoryLayout {
         }
     }
 
-    pub fn as_map(&self) -> HashMap<usize, Arc<dyn IncommingObserver>> {
-        HashMap::from([
-            (self.first.handle(), as_trait(Arc::clone(&self.first))),
-            (self.second.handle(), as_trait(Arc::clone(&self.second))),
-            (self.third.handle(), as_trait(Arc::clone(&self.third))),
-        ])
-    }
-
     pub fn get_slot(&self, handle: usize) -> Option<Arc<dyn IncommingObserver>> {
         match handle {
             0x01 => Some(as_trait(Arc::clone(&self.first))),
             0x02 => Some(as_trait(Arc::clone(&self.second))),
             0x03 => Some(as_trait(Arc::clone(&self.third))),
-            _ => None
+            _ => None,
         }
     }
 

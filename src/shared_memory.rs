@@ -75,10 +75,9 @@ impl SharedMemory {
     pub fn notify_change(&self, package: Package) {
         trace!("Change notification received!");
 
-        // TODO: create map at start!
-        let map = self.memory_layout.as_map();
+        let handle = package.header.handle;
 
-        if let Some(v) = map.get(&package.header.handle) {
+        if let Some(v) = self.memory_layout.get_slot(handle) {
             v.notify(package.payload);
         } else {
             trace!("Handle {:#x} not found!", package.header.handle);

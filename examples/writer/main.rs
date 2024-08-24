@@ -1,7 +1,12 @@
 #[cfg(target_os = "hermit")]
 use hermit as _;
 
-use std::{env, net::UdpSocket, thread, time::{Duration, Instant}};
+use std::{
+    env,
+    net::UdpSocket,
+    thread,
+    time::{Duration, Instant},
+};
 
 use smash::{config::Config, shared_memory::SharedMemory};
 use tracing::info;
@@ -12,7 +17,7 @@ const RECV_IP: &str = "127.0.0.1:4201";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     let config = Config::new(&args);
 
     let send = UdpSocket::bind(SEND_IP).unwrap_or_log();
@@ -24,7 +29,6 @@ fn main() {
     info!("Shared Memory initialized! Writer started");
 
     loop {
-        
         let start = Instant::now();
         let first = sm.memory_layout.first();
 
@@ -32,12 +36,11 @@ fn main() {
             let mut value = first.write();
             *value = 42;
         }
-    
+
         first.update();
         let duration = start.elapsed();
 
         info!("Write operation took: {}us", duration.as_micros());
-
 
         let start = Instant::now();
         let first = sm.memory_layout.first();
@@ -45,7 +48,7 @@ fn main() {
         {
             let _value = first.read();
         }
-    
+
         let duration = start.elapsed();
 
         info!("Read operation took: {}us", duration.as_micros());
