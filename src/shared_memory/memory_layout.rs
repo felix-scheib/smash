@@ -1,8 +1,11 @@
 use std::sync::{Arc, Weak};
 
+use impl_macro::Implement;
+
 use super::{as_trait, slot::Slot, IncommingObserver, SharedMemory};
 
 /// Define Memory here!
+#[derive(Implement)]
 pub struct MemoryLayout {
     first: Arc<Slot<i32>>,
     second: Arc<Slot<Vec<u8>>>,
@@ -32,7 +35,8 @@ impl MemoryLayout {
         }
     }
 
-    pub fn first(&self) -> Arc<Slot<i32>> {
+    /*
+        pub fn first(&self) -> Arc<Slot<i32>> {
         Arc::clone(&self.first)
     }
 
@@ -43,4 +47,5 @@ impl MemoryLayout {
     pub fn third(&self) -> Arc<Slot<String>> {
         Arc::clone(&self.third)
     }
+    */
 }

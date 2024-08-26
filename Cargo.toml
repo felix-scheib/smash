@@ -7,8 +7,9 @@ edition = "2021"
 name = "tap"
 
 [dependencies]
-serde = { version = "1.0.204", features = ["derive"] }
-serde_yml = "0.0.11"
+impl_macro = { path = "impl_macro" }
+serde = { version = "1.0.209", features = ["derive"] }
+serde_yml = "0.0.12"
 tracing = "0.1.40"
 tracing-appender = "0.2.3"
 tracing-subscriber = "0.3.18"
