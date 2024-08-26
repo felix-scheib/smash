@@ -26,7 +26,9 @@ impl MemoryLayout {
         }
     }
 
-    pub fn get_slot(&self, handle: usize) -> Option<Arc<dyn IncommingObserver>> {
+
+    /*
+        pub fn get_slot(&self, handle: usize) -> Option<Arc<dyn IncommingObserver>> {
         match handle {
             0x01 => Some(as_trait(Arc::clone(&self.first))),
             0x02 => Some(as_trait(Arc::clone(&self.second))),
@@ -34,6 +36,9 @@ impl MemoryLayout {
             _ => None,
         }
     }
+    */
+
+
 
     /*
         pub fn first(&self) -> Arc<Slot<i32>> {

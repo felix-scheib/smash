@@ -10,13 +10,13 @@ pub fn derive_answer_fn(item: TokenStream) -> TokenStream {
 
 
     //let init = implement_init(&input);
-    //let map = implement_get_slot(&input);
+    let map = implement_get_slot(&input);
     let getter = implement_getter(&input);
 
     let expanded = quote! {
         impl #name {
             //#init
-            //#map
+            #map
             #getter
         }
     };
@@ -64,38 +64,13 @@ fn implement_init(input: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn implement_get_slot(input: &DeriveInput) -> proc_macro2::TokenStream {
-    /*
-    0x01 => Some(as_trait(Arc::clone(&self.first))),
-    0x02 => Some(as_trait(Arc::clone(&self.second))),
-    0x03 => Some(as_trait(Arc::clone(&self.third))),
-    */
-
-
-    /*
-    quote! {
-        #handle => Some(super::as_trait(std::sync::Arc::clone(&self.#name))),
-    }    
-    */
-
-    /*
-    let expanded = quote! {
-        impl #name {
-            pub fn get_slot(&self, handle: usize) -> Option<std::sync::Arc<dyn super::IncommingObserver>> {
-                match handle {
-                    #(#arms)*
-                    _ => None,
-                }
-            }
-        }
-    };
-    */
-
     let fields = if let Data::Struct(ref data_struct) = input.data {
         if let Fields::Named(ref fields) = data_struct.fields {
             fields.named.iter().enumerate().map(|(i, f)| {
-                let field_name = f.ident.as_ref().unwrap().to_string();
+                let field_name = &f.ident;
+                let handle = i + 1;
                 quote! {
-                    #i => println!("Handle {} found in field {}!", #i, #field_name),
+                    #handle => Some(super::as_trait(std::sync::Arc::clone(&self.#field_name))),
                 }
             }).collect::<Vec<_>>()
         } else {
@@ -107,10 +82,10 @@ fn implement_get_slot(input: &DeriveInput) -> proc_macro2::TokenStream {
 
 
     quote! {
-        pub fn get_slot(&self, handle: usize) {
+        pub fn get_slot(&self, handle: usize) -> Option<std::sync::Arc<dyn super::IncommingObserver>> {
             match handle {
                 #(#fields)*
-                _ => println!("Handle {} not found!", handle),
+                _ => None,
             }
         }
     }
