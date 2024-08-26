@@ -4,8 +4,7 @@ use hermit as _;
 use std::{
     env,
     net::UdpSocket,
-    thread,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use smash::{config::Config, shared_memory::SharedMemory};

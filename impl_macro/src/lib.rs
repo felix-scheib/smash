@@ -9,13 +9,13 @@ pub fn derive_answer_fn(item: TokenStream) -> TokenStream {
     let name = &input.ident;
 
 
-    //let init = implement_init(&input);
+    let init = implement_init(&input);
     let map = implement_get_slot(&input);
     let getter = implement_getter(&input);
 
     let expanded = quote! {
         impl #name {
-            //#init
+            #init
             #map
             #getter
         }
@@ -25,26 +25,17 @@ pub fn derive_answer_fn(item: TokenStream) -> TokenStream {
 }
 
 fn implement_init(input: &DeriveInput) -> proc_macro2::TokenStream {
-    /*
-    pub fn init(shared_memory: &Weak<SharedMemory>) -> Self {
-        Self {
-            first: Arc::new(Slot::new(
-                Default::default(),
-                0x01,
-                Weak::clone(&shared_memory),
-            )),
-            second: Arc::new(Slot::new(Vec::new(), 0x02, Weak::clone(&shared_memory))),
-            third: Arc::new(Slot::new(String::new(), 0x03, Weak::clone(&shared_memory))),
-        }
-    }
-    */
-
     let fields = if let Data::Struct(ref data_struct) = input.data {
         if let Fields::Named(ref fields) = data_struct.fields {
             fields.named.iter().enumerate().map(|(i, f)| {
                 let field_name = &f.ident;
+                let handle = i + 1;
                 quote! {
-                    #field_name: std::sync::Arc::new(Default::default()),
+                    #field_name: std::sync::Arc::new(super::slot::Slot::new(
+                        Default::default(),
+                        #handle,
+                        std::sync::Weak::clone(&shared_memory),
+                    )),
                 }
             }).collect::<Vec<_>>()
         } else {
@@ -55,7 +46,7 @@ fn implement_init(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     quote! {
-        pub fn init() -> Self {
+        pub fn init(shared_memory: &std::sync::Weak<super::SharedMemory>) -> Self {
             Self {
                 #(#fields)*
             }
