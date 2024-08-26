@@ -1,11 +1,7 @@
 #[cfg(target_os = "hermit")]
 use hermit as _;
 
-use std::{
-    env,
-    net::UdpSocket,
-    time::Instant,
-};
+use std::{env, net::UdpSocket, time::Instant};
 
 use smash::{config::Config, shared_memory::SharedMemory};
 use tracing::info;
