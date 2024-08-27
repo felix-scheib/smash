@@ -1,21 +1,21 @@
 #[cfg(target_os = "hermit")]
 use hermit as _;
 
-use std::{env, net::UdpSocket, time::Instant};
+use std::{env, net::UdpSocket, thread, time::{Duration, Instant}};
 
 use smash::{config::Config, shared_memory::SharedMemory};
 use tracing::info;
 use tracing_unwrap::ResultExt;
 
-const SEND_IP: &str = "127.0.0.1:2301";
-const RECV_IP: &str = "127.0.0.1:4201";
+const SEND_IP: &str = "0.0.0.0:2301";
+const RECV_IP: &str = "0.0.0.0:4201";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     let config = Config::new(&args);
 
-    let send = UdpSocket::bind(SEND_IP).unwrap_or_log();
+    let send = UdpSocket::bind(SEND_IP).unwrap_or_log   ();
     info!("Bind sender to: {:?}", send);
     let recv = UdpSocket::bind(RECV_IP).unwrap_or_log();
     info!("Bind receiver to: {:?}", recv);
@@ -48,6 +48,6 @@ fn main() {
 
         info!("Read operation took: {}us", duration.as_micros());
 
-        //thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_secs(1));
     }
 }

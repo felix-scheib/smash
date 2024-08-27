@@ -1,0 +1,12 @@
+[package]
+name = "local"
+version = "0.1.0"
+edition = "2021"
+
+[target."cfg(target_os = \"hermit\")".dependencies]
+hermit = { version = "0.9.1", default-features = false, features = ["acpi","pci","pci-ids","udp"] }
+
+[dependencies]
+smash = { path = "../../"}
+tracing = "0.1.40"
+tracing-unwrap = "1.0.1"

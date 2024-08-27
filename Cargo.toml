@@ -3,9 +3,6 @@ name = "smash"
 version = "0.1.0"
 edition = "2021"
 
-[[example]]
-name = "tap"
-
 [dependencies]
 impl_macro = { path = "impl_macro" }
 serde = { version = "1.0.209", features = ["derive"] }
