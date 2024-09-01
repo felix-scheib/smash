@@ -61,10 +61,12 @@ impl Config {
             None => LOG_LEVEL_DEFAULT,
         };
 
+        /*
         let file_appender = tracing_appender::rolling::never(
             self.config_file.get_log_path(),
             self.config_file.get_log_file(),
         );
+        */
 
         let terminal_layer = fmt::layer()
             .with_writer(std::io::stdout.with_max_level(level))
@@ -72,12 +74,14 @@ impl Config {
             .with_file(false)
             .with_line_number(false);
 
-        let subscriber = Registry::default().with(terminal_layer).with(
+        let subscriber = Registry::default().with(terminal_layer);
+        /*.with(
             fmt::layer()
                 .with_writer(file_appender)
                 .with_file(true)
                 .with_line_number(true),
         );
+        */
 
         tracing::subscriber::set_global_default(subscriber).unwrap();
 

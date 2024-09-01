@@ -20,4 +20,4 @@ qemu-system-x86_64 \
   -numa node,memdev=mem \
   -netdev user,id=u1,hostfwd=udp::4201-:4201,net=192.168.76.0/24,dhcpstart=192.168.76.10 \
   -device virtio-net-pci,netdev=u1,disable-legacy=on,packed=on,mq=on \
-  -append "-- LOG=trace CONFIG=/root/config.yml"
+  -append "-- LOG=info CONFIG=/root/config.yml"

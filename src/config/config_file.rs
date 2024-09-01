@@ -29,9 +29,12 @@ impl ConfigFile {
         &self.hosts
     }
 
+    #[allow(dead_code)]
     pub fn get_log_path(&self) -> &str {
         self.log_path.as_str()
     }
+
+    #[allow(dead_code)]
     pub fn get_log_file(&self) -> &str {
         self.log_file.as_str()
     }

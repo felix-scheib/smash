@@ -7,7 +7,7 @@ use super::slot::Slot;
 /// Define Memory here!
 #[derive(Implement)]
 pub struct MemoryLayout {
-    first: Arc<Slot<i32>>,
+    first: Arc<Slot<Vec<u8>>>,
     second: Arc<Slot<Vec<u8>>>,
     third: Arc<Slot<String>>,
 }

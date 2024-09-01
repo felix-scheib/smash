@@ -14,6 +14,8 @@ impl Sender {
     pub fn send(&self, msg: &[u8], dest: &SocketAddr) -> Result<usize, std::io::Error> {
         trace!("Sending UDP packet to: {:?}", dest);
 
-        self.sock.send_to(msg, dest)
+        let res = self.sock.send_to(msg, dest);
+
+        res
     }
 }

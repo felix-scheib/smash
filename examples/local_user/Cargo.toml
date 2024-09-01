@@ -3,6 +3,9 @@ name = "local"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+debug = true
+
 [target."cfg(target_os = \"hermit\")".dependencies]
 hermit = "0.9.1"
 

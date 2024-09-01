@@ -47,6 +47,7 @@ where
 
         if let Some(shared_memory) = self.shared_memory.upgrade() {
             let payload = self.serialize();
+
             shared_memory.notify_write(self.handle, payload.clone());
         }
     }
