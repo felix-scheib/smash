@@ -7,13 +7,12 @@ use tracing::trace;
 const PREAMBLE: &str = "SMasH";
 const TYPE_SIZE: usize = 12;
 const HEADER_SIZE: usize = 25 + TYPE_SIZE;
-//const MTU: usize = 1_024;
+//const MTU: usize = 1_500;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[repr(u8)]
 pub enum Type {
     SINGLE(usize),
-    NACK(usize),
 }
 
 #[derive(Debug, PartialEq)]

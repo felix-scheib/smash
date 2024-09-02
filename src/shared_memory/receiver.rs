@@ -11,7 +11,7 @@ use crate::networking::packet::Packet;
 
 use super::SharedMemory;
 
-const BUFFER_SIZE: usize = 1_024;
+const BUFFER_SIZE: usize = 1_500;
 
 pub struct Receiver {
     sock: UdpSocket,
