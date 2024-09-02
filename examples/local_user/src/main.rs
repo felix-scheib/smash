@@ -36,6 +36,8 @@ fn main() {
         *value = vec![0x0u8; SIZE];
     }
 
+    let _receiver = sm.receive();
+
     for _ in 0..N {
         let start = Instant::now();
 
